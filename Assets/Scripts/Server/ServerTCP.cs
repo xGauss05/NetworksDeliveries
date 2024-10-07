@@ -43,15 +43,23 @@ public class ServerTCP : MonoBehaviour
         int port = 9050;
         IPEndPoint ipep = new IPEndPoint(IPAddress.Any, port);
 
-        socket.Bind(ipep);
+        try
+        {
+            socket.Bind(ipep);
+            serverText += "\nSocket successfully bound to port 9050.";
+        }
+        catch (SocketException ex)
+        {
+            serverText += "\nSocket binding failed: " + ex.Message;
+            return; // Exit if binding failed
+        }
 
         socket.Listen(10);
-
         //TO DO 3
         //TIme to check for connections, start a thread using CheckNewConnections
         mainThread = new Thread(CheckNewConnections);
         mainThread.Start();
-        
+
     }
 
     void CheckNewConnections()
@@ -70,12 +78,19 @@ public class ServerTCP : MonoBehaviour
             //If you want to check their ports and adresses, you can acces
             //the socket's RemoteEndpoint and LocalEndPoint
             //try printing them on the console
+            try
+            {
+                newUser.socket = socket.Accept(); //accept the socket
+            }
+            catch (SocketException ex)
+            {
+                serverText += "\nSocket accept failed: " + ex.Message;
+                return; // Exit if binding failed
+            }
 
-            newUser.socket = socket.Accept(); //accept the socket
+            //IPEndPoint clientep = (IPEndPoint)socket.RemoteEndPoint;
+            //serverText = serverText + "\n" + "Connected with " + clientep.Address.ToString() + " at port " + clientep.Port.ToString();
 
-            IPEndPoint clientep = (IPEndPoint)socket.RemoteEndPoint;
-            serverText = serverText + "\n" + "Connected with " + clientep.Address.ToString() + " at port " + clientep.Port.ToString();
-            
             //TO DO 5
             //For every client, we call a new thread to receive their messages. 
             //Here we have to send our user as a parameter so we can use it's socket.

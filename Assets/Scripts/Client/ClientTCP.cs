@@ -32,6 +32,7 @@ public class ClientTCP : MonoBehaviour
 
     void Connect()
     {
+        clientText = "Attempting connect...";
         //TO DO 2
         //Create the server endpoint so we can try to connect to it.
         //You'll need the server's IP and the port we binded it to before
@@ -39,8 +40,9 @@ public class ClientTCP : MonoBehaviour
         //When calling connect and succeeding, our server socket will create a
         //connection between this endpoint and the server's endpoint
 
+        string IP = "192.168.206.18"; // CHANGE IT ACCORDINGLY
         int port = 9050;
-        IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("192.168.206.12"), port);
+        IPEndPoint ipep = new IPEndPoint(IPAddress.Parse(IP), port);
 
         server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         server.Connect(ipep);
@@ -62,8 +64,8 @@ public class ClientTCP : MonoBehaviour
         //TO DO 4
         //Using the socket that stores the connection between the 2 endpoints, call the TCP send function with
         //an encoded message
-
-        server.Send(Encoding.ASCII.GetBytes("Message sent!"));
+        clientText = "Attempting send...";
+        server.Send(Encoding.ASCII.GetBytes("mondongo bobo"));
 
     }
 
