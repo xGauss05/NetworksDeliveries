@@ -46,7 +46,7 @@ public class ServerTCP : MonoBehaviour
         try
         {
             socket.Bind(ipep);
-            serverText += "\nSocket successfully bound to port 9050.";
+            serverText += "\nSocket successfully bound to port 9050. IPEP: " + ipep.ToString();
         }
         catch (SocketException ex)
         {

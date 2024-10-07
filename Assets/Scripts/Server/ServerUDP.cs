@@ -16,8 +16,8 @@ public class ServerUDP : MonoBehaviour
     void Start()
     {
         UItext = UItextObj.GetComponent<TextMeshProUGUI>();
-
     }
+
     public void startServer()
     {
         serverText = "Starting UDP Server...";
@@ -34,8 +34,18 @@ public class ServerUDP : MonoBehaviour
         int port = 9050;
         IPEndPoint ipep = new IPEndPoint(IPAddress.Any, port);
 
-        socket.Bind(ipep);
-        socket.Listen(10);
+        try
+        {
+            socket.Bind(ipep);
+            serverText += "\nSocket successfully bound to port 9050.";
+        }
+        catch (SocketException ex)
+        {
+            serverText += "\nSocket binding failed: " + ex.Message;
+            return; // Exit if binding failed
+        }
+
+        //socket.Listen(10);
 
         //TO DO 3
         //Our client is sending a handshake, the server has to be able to recieve it
@@ -47,15 +57,14 @@ public class ServerUDP : MonoBehaviour
     void Update()
     {
         UItext.text = serverText;
-
     }
 
- 
+
     void Receive()
     {
-        int recv = 0;
+        int recv;
         byte[] data = new byte[1024];
-        
+
         serverText = serverText + "\n" + "Waiting for new Client...";
 
         //TO DO 3
@@ -63,7 +72,7 @@ public class ServerUDP : MonoBehaviour
         //endpoint with any address and an IpEndpoint from it to reply to it later.
         IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
         EndPoint Remote = (EndPoint)(sender);
-        
+
         //Loop the whole process, and start receiveing messages directed to our socket
         //(the one we binded to a port before)
         //When using socket.ReceiveFrom, be sure send our remote as a reference so we can keep
@@ -71,29 +80,33 @@ public class ServerUDP : MonoBehaviour
 
         while (true)
         {
-            socket.ReceiveFrom(data, ref Remote);
-            serverText = serverText + "\n" + "Message received from {0}:" + Remote.ToString();
-            serverText = serverText + "\n" + Encoding.ASCII.GetString(data, 0, recv);
-
+            recv = socket.ReceiveFrom(data, ref Remote);
+            serverText += "\n" + "Message received from: " + Remote.ToString();
+            serverText += "\n" + Encoding.ASCII.GetString(data, 0, recv);
+            
             //TO DO 4
             //When our UDP server receives a message from a random remote, it has to send a ping,
             //Call a send thread
             Thread sendThread = new Thread(() => Send(Remote));
             sendThread.Start();
         }
-
     }
 
     void Send(EndPoint Remote)
     {
         //TO DO 4
         //Use socket.SendTo to send a ping using the remote we stored earlier.
-        byte[] data = new byte[1024];
-        string welcome = "Ping";
-
-        socket.SendTo(Encoding.ASCII.GetBytes(welcome), Remote);
-
+        byte[] data = Encoding.ASCII.GetBytes("Server has sent a mondongo message");
+        try
+        {
+            socket.SendTo(data, data.Length, SocketFlags.None, Remote);
+        }
+        catch (SocketException ex)
+        {
+            serverText += "\nSocket send failed: " + ex.Message;
+            return;
+        }
     }
 
-   
+
 }

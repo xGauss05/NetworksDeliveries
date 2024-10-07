@@ -40,7 +40,7 @@ public class ClientTCP : MonoBehaviour
         //When calling connect and succeeding, our server socket will create a
         //connection between this endpoint and the server's endpoint
 
-        string IP = "192.168.206.18"; // CHANGE IT ACCORDINGLY
+        string IP = "127.0.0.1"; // CHANGE IT ACCORDINGLY
         int port = 9050;
         IPEndPoint ipep = new IPEndPoint(IPAddress.Parse(IP), port);
 
