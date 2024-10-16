@@ -4,10 +4,12 @@ using System.Net.Sockets;
 using System.Threading;
 using TMPro;
 using System.Text;
+using System.Collections.Generic;
 
 public class ServerTCP : MonoBehaviour
 {
     Socket socket;
+    IPEndPoint ipep;
     Thread mainThread = null;
 
     public GameObject UItextObj;
@@ -19,6 +21,8 @@ public class ServerTCP : MonoBehaviour
         public string name;
         public Socket socket;
     }
+
+    private List<User> userList = new List<User>();
 
     void Start()
     {
@@ -34,14 +38,10 @@ public class ServerTCP : MonoBehaviour
     {
         serverText = "Starting TCP Server...";
 
-        //TO DO 1
-        //Create and bind the socket
-        //Any IP that wants to connect to the port 9050 with TCP, will communicate with this socket
-        //Don't forget to set the socket in listening mode
         socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
         int port = 9050;
-        IPEndPoint ipep = new IPEndPoint(IPAddress.Any, port);
+        ipep = new IPEndPoint(IPAddress.Any, port);
 
         try
         {
@@ -55,8 +55,7 @@ public class ServerTCP : MonoBehaviour
         }
 
         socket.Listen(10);
-        //TO DO 3
-        //TIme to check for connections, start a thread using CheckNewConnections
+
         mainThread = new Thread(CheckNewConnections);
         mainThread.Start();
 
@@ -68,19 +67,21 @@ public class ServerTCP : MonoBehaviour
         {
             User newUser = new User();
             newUser.name = "";
-            //TO DO 3
-            //TCP makes it so easy to manage conections, so we are going
-            //to put it to use
-            //Accept any incoming clients and store them in this user.
-            //When accepting, we can now store a copy of our server socket
-            //who has established a communication between a
-            //local endpoint (server) and the remote endpoint(client)
-            //If you want to check their ports and adresses, you can acces
-            //the socket's RemoteEndpoint and LocalEndPoint
-            //try printing them on the console
+
             try
             {
-                newUser.socket = socket.Accept(); //accept the socket
+                newUser.socket = socket.Accept(); // Accept the socket connection
+                serverText += "\nNew client connected from: " + newUser.socket.RemoteEndPoint.ToString();
+
+                // Add the new user to the list of connected users
+                userList.Add(newUser);
+
+                // Send a success message to the client
+                newUser.socket.Send(Encoding.ASCII.GetBytes("Successfully connected to server at " + ipep.ToString()));
+
+                // Start a thread to handle receiving messages from this client
+                Thread newConnection = new Thread(() => Receive(newUser));
+                newConnection.Start();
             }
             catch (SocketException ex)
             {
@@ -90,52 +91,61 @@ public class ServerTCP : MonoBehaviour
 
             //IPEndPoint clientep = (IPEndPoint)socket.RemoteEndPoint;
             //serverText = serverText + "\n" + "Connected with " + clientep.Address.ToString() + " at port " + clientep.Port.ToString();
-
-            //TO DO 5
-            //For every client, we call a new thread to receive their messages. 
-            //Here we have to send our user as a parameter so we can use it's socket.
-            Thread newConnection = new Thread(() => Receive(newUser));
-            newConnection.Start();
-
-
         }
-        //This users could be stored in the future on a list
-        //in case you want to manage your connections
-
     }
 
     void Receive(User user)
     {
-        //TO DO 5
-        //Create an infinite loop to start receiving messages for this user
-        //You'll have to use the socket function receive to be able to get them.
         byte[] data = new byte[1024];
         int recv = 0;
+        recv = user.socket.Receive(data);
+        if (recv > 0)
+        {
+            user.name = Encoding.ASCII.GetString(data, 0, recv);
+            serverText += "\nPlayer connected: " + user.name;
+        }
 
         while (true)
         {
-            data = new byte[1024];
-            recv = user.socket.Receive(data);
-            if (recv == 0)
-                break;
-            else
+            try
             {
-                serverText = serverText + "\n" + Encoding.ASCII.GetString(data, 0, recv);
-            }
+                recv = user.socket.Receive(data);
+                if (recv == 0)
+                {
+                    serverText += "\n" + user.name + " disconnected.";
+                    userList.Remove(user);
+                    user.socket.Close();
+                    break;
+                }
+                else
+                {
+                    string receivedMessage = Encoding.ASCII.GetString(data, 0, recv);
+                    serverText += "\n" + receivedMessage;
 
-            //TO DO 6
-            //We'll send a ping back every time a message is received
-            //Start another thread to send a message, same parameters as this one.
-            Thread answer = new Thread(() => Send(user));
-            answer.Start();
+                    foreach (User u in userList)
+                        Send(u, receivedMessage);
+                }
+            }
+            catch (SocketException ex)
+            {
+                serverText += "\nError receiving data: " + ex.Message;
+                userList.Remove(user);
+                user.socket.Close();
+                break;
+            }
         }
     }
 
-    //TO DO 6
-    //Now, we'll use this user socket to send a "ping".
-    //Just call the socket's send function and encode the string.
-    void Send(User user)
+    void Send(User user, string message)
     {
-        user.socket.Send(Encoding.ASCII.GetBytes("PING!"));
+        byte[] messageBytes = Encoding.ASCII.GetBytes(message);
+        try
+        {
+            user.socket.Send(messageBytes);
+        }
+        catch (SocketException ex)
+        {
+            serverText += "\nError sending data to client: " + ex.Message;
+        }
     }
 }

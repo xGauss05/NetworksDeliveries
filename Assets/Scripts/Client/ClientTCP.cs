@@ -4,6 +4,7 @@ using System.Text;
 using UnityEngine;
 using System.Threading;
 using TMPro;
+using System;
 
 public class ClientTCP : MonoBehaviour
 {
@@ -11,6 +12,13 @@ public class ClientTCP : MonoBehaviour
     TextMeshProUGUI UItext;
     string clientText;
     Socket server;
+
+    public TMP_InputField usernameIF;
+    public TMP_InputField ipIF;
+    public TMP_InputField chatIF;
+
+    string playerName;
+    string IPtoConnect;
 
     // Start is called before the first frame update
     void Start()
@@ -26,60 +34,94 @@ public class ClientTCP : MonoBehaviour
 
     public void StartClient()
     {
+        DisableInputs();
+
         Thread connect = new Thread(Connect);
         connect.Start();
     }
 
+    public void ChangeName()
+    {
+        playerName = usernameIF.text;
+        clientText = "Your name is now: " + playerName;
+    }
+
+    public void ChangeIP()
+    {
+        IPtoConnect = ipIF.text;
+    }
+
     void Connect()
     {
-        clientText = "Attempting connect...";
-        //TO DO 2
-        //Create the server endpoint so we can try to connect to it.
-        //You'll need the server's IP and the port we binded it to before
-        //Also, initialize our server socket.
-        //When calling connect and succeeding, our server socket will create a
-        //connection between this endpoint and the server's endpoint
+        clientText = "Attempting connect to IP: " + IPtoConnect + " ...";
 
-        string IP = "127.0.0.1"; // CHANGE IT ACCORDINGLY
         int port = 9050;
-        IPEndPoint ipep = new IPEndPoint(IPAddress.Parse(IP), port);
+        IPEndPoint ipep = new IPEndPoint(IPAddress.Parse(IPtoConnect), port);
 
         server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        server.Connect(ipep);
+        try
+        {
+            server.Connect(ipep);
+            clientText += "\nConnected to server at " + IPtoConnect + ":" + port;
 
-        //TO DO 4
-        //With an established connection, we want to send a message so the server acknowledges us
-        //Start the Send Thread
-        Thread sendThread = new Thread(Send);
-        sendThread.Start();
+            Thread sendThread = new Thread(Send);
+            sendThread.Start();
 
-        //TO DO 7
-        //If the client wants to receive messages, it will have to start another thread. Call Receive()
-        Thread receiveThread = new Thread(Receive);
-        receiveThread.Start();
-
+            Thread receiveThread = new Thread(Receive);
+            receiveThread.Start();
+        }
+        catch (SocketException ex)
+        {
+            clientText += "\nConnection failed: " + ex.Message; 
+        }
     }
+
     void Send()
     {
-        //TO DO 4
-        //Using the socket that stores the connection between the 2 endpoints, call the TCP send function with
-        //an encoded message
-        clientText = "Attempting send...";
-        server.Send(Encoding.ASCII.GetBytes("mondongo bobo"));
-
+        server.Send(Encoding.ASCII.GetBytes(playerName));
     }
 
-    //TO DO 7
-    //Similar to what we already did with the server, we have to call the Receive() method from the socket.
+    public void SendChat()
+    {
+        if (!chatIF.text.Equals(""))
+        {
+            server.Send(Encoding.ASCII.GetBytes(playerName + " says: " + chatIF.text));
+            chatIF.text = "";
+        }
+    }
+
     void Receive()
     {
         byte[] data = new byte[1024];
         int recv = 0;
 
-        server.Receive(data);
-        recv = data.Length;
+        while (true)
+        {
+            recv = server.Receive(data);
+            if (recv == 0)
+            {
+                ResetInputs();
+                break;
+            }
+            else
+            {
+                clientText = clientText + "\n" + Encoding.ASCII.GetString(data, 0, recv);
+            }
+        }
+    }
 
-        clientText = clientText += "\n" + Encoding.ASCII.GetString(data, 0, recv);
+    void DisableInputs()
+    {
+        usernameIF.gameObject.SetActive(false);
+        ipIF.gameObject.SetActive(false);
+        chatIF.gameObject.SetActive(true);
+    }
+
+    void ResetInputs()
+    {
+        usernameIF.gameObject.SetActive(true);
+        ipIF.gameObject.SetActive(true);
+        chatIF.gameObject.SetActive(false);
     }
 
 }
