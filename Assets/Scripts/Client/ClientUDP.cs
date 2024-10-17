@@ -23,6 +23,8 @@ public class ClientUDP : MonoBehaviour
     string playerName;
     string IPtoConnect;
 
+    bool toggleInputs = false;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -32,20 +34,33 @@ public class ClientUDP : MonoBehaviour
     void Update()
     {
         UItext.text = clientText;
+
+        if (toggleInputs)
+        {
+            toggleInputs = false;
+            ToggleInputs(false);
+        }
     }
 
     public void StartClient()
     {
-        DisableInputs();
+        if (!string.IsNullOrEmpty(IPtoConnect) && !string.IsNullOrEmpty(playerName))
+        {
+            ToggleInputs(true);
 
-        Thread mainThread = new Thread(Connect);
-        mainThread.Start();
+            Thread mainThread = new Thread(Connect);
+            mainThread.Start();
+        }
+        else
+        {
+            clientText += "\nPlease fill the required data.";
+        }
     }
 
     public void ChangeName()
     {
         playerName = usernameIF.text;
-        clientText = "Your name is now: " + playerName;
+        clientText += "\nYour name is now: " + playerName;
     }
 
     public void ChangeIP()
@@ -55,18 +70,28 @@ public class ClientUDP : MonoBehaviour
 
     void Connect()
     {
+
         clientText = "Attempting to connect to server at IP: " + IPtoConnect + " ...";
         int port = 9050;
         IPEndPoint serverEndpoint = new IPEndPoint(IPAddress.Parse(IPtoConnect), port);
 
         socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
-        // Initial information to send
-        Send(serverEndpoint, playerName);
+        try
+        {
+            Send(serverEndpoint, playerName);
+        }
+        catch (SocketException ex)
+        {
+            clientText += "\nConnection failed: " + ex.Message;
+            toggleInputs = true;
+            return;
+        }
 
         // Start a thread to listen for incoming messages from the server
         Thread receiveThread = new Thread(() => Receive(serverEndpoint));
         receiveThread.Start();
+
     }
 
     void Send(IPEndPoint serverEndpoint, string message)
@@ -79,6 +104,7 @@ public class ClientUDP : MonoBehaviour
         catch (SocketException ex)
         {
             clientText += "\nFailed to send message: " + ex.Message;
+            toggleInputs = true;
         }
     }
 
@@ -108,31 +134,21 @@ public class ClientUDP : MonoBehaviour
             catch (SocketException ex)
             {
                 clientText += "\nError receiving data: " + ex.Message;
+                toggleInputs = true;
                 break;
             }
         }
     }
 
-    void DisableInputs()
+    void ToggleInputs(bool toggle)
     {
-        usernameIF.gameObject.SetActive(false);
-        ipIF.gameObject.SetActive(false);
-        chatIF.gameObject.SetActive(true);
+        usernameIF.gameObject.SetActive(!toggle);
+        ipIF.gameObject.SetActive(!toggle);
+        chatIF.gameObject.SetActive(toggle);
 
-        usernameTitle.SetActive(false);
-        ipTitle.SetActive(false);
-        sendBtn.SetActive(true);
+        usernameTitle.SetActive(!toggle);
+        ipTitle.SetActive(!toggle);
+        sendBtn.SetActive(toggle);
     }
 
-    void ResetInputs()
-    {
-        usernameIF.gameObject.SetActive(true);
-        ipIF.gameObject.SetActive(true);
-        chatIF.gameObject.SetActive(false);
-
-        usernameTitle.SetActive(true);
-        ipTitle.SetActive(true);
-        sendBtn.SetActive(false);
-    }
 }
-

@@ -24,6 +24,8 @@ public class ClientTCP : MonoBehaviour
     string playerName;
     string IPtoConnect;
 
+    bool toggleInputs = false;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -34,14 +36,27 @@ public class ClientTCP : MonoBehaviour
     void Update()
     {
         UItext.text = clientText;
+
+        if (toggleInputs)
+        {
+            toggleInputs = false;
+            ToggleInputs(false);
+        }
     }
 
     public void StartClient()
     {
-        DisableInputs();
+        if (!string.IsNullOrEmpty(IPtoConnect) && !string.IsNullOrEmpty(playerName))
+        {
+            ToggleInputs(true);
 
-        Thread connect = new Thread(Connect);
-        connect.Start();
+            Thread connect = new Thread(Connect);
+            connect.Start();
+        }
+        else
+        {
+            clientText += "\nPlease fill the required data.";
+        }
     }
 
     public void ChangeName()
@@ -77,7 +92,7 @@ public class ClientTCP : MonoBehaviour
         catch (SocketException ex)
         {
             clientText += "\nConnection failed: " + ex.Message;
-            ResetInputs();
+            toggleInputs = true;
         }
     }
 
@@ -105,7 +120,7 @@ public class ClientTCP : MonoBehaviour
             recv = server.Receive(data);
             if (recv == 0)
             {
-                ResetInputs();
+                ToggleInputs(false);
                 break;
             }
             else
@@ -115,26 +130,15 @@ public class ClientTCP : MonoBehaviour
         }
     }
 
-    void DisableInputs()
+    void ToggleInputs(bool toggle)
     {
-        usernameIF.gameObject.SetActive(false);
-        ipIF.gameObject.SetActive(false);
-        chatIF.gameObject.SetActive(true);
+        usernameIF.gameObject.SetActive(!toggle);
+        ipIF.gameObject.SetActive(!toggle);
+        chatIF.gameObject.SetActive(toggle);
 
-        usernameTitle.SetActive(false);
-        ipTitle.SetActive(false);
-        sendBtn.SetActive(true);
-    }
-
-    void ResetInputs()
-    {
-        usernameIF.gameObject.SetActive(true);
-        ipIF.gameObject.SetActive(true);
-        chatIF.gameObject.SetActive(false);
-
-        usernameTitle.SetActive(true);
-        ipTitle.SetActive(true);
-        sendBtn.SetActive(false);
+        usernameTitle.SetActive(!toggle);
+        ipTitle.SetActive(!toggle);
+        sendBtn.SetActive(toggle);
     }
 
 }
