@@ -17,6 +17,10 @@ public class ClientTCP : MonoBehaviour
     public TMP_InputField ipIF;
     public TMP_InputField chatIF;
 
+    public GameObject usernameTitle;
+    public GameObject ipTitle;
+    public GameObject sendBtn;
+
     string playerName;
     string IPtoConnect;
 
@@ -72,7 +76,8 @@ public class ClientTCP : MonoBehaviour
         }
         catch (SocketException ex)
         {
-            clientText += "\nConnection failed: " + ex.Message; 
+            clientText += "\nConnection failed: " + ex.Message;
+            ResetInputs();
         }
     }
 
@@ -115,6 +120,10 @@ public class ClientTCP : MonoBehaviour
         usernameIF.gameObject.SetActive(false);
         ipIF.gameObject.SetActive(false);
         chatIF.gameObject.SetActive(true);
+
+        usernameTitle.SetActive(false);
+        ipTitle.SetActive(false);
+        sendBtn.SetActive(true);
     }
 
     void ResetInputs()
@@ -122,6 +131,10 @@ public class ClientTCP : MonoBehaviour
         usernameIF.gameObject.SetActive(true);
         ipIF.gameObject.SetActive(true);
         chatIF.gameObject.SetActive(false);
+
+        usernameTitle.SetActive(true);
+        ipTitle.SetActive(true);
+        sendBtn.SetActive(false);
     }
 
 }

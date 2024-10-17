@@ -4,14 +4,20 @@ using System.Text;
 using UnityEngine;
 using System.Threading;
 using TMPro;
+using System.Collections.Generic;
+
 
 public class ServerUDP : MonoBehaviour
 {
     Socket socket;
+    IPEndPoint ipep;
+    Thread mainThread = null;
 
     public GameObject UItextObj;
     TextMeshProUGUI UItext;
     string serverText;
+
+    private Dictionary<EndPoint, string> userList = new Dictionary<EndPoint, string>();
 
     void Start()
     {
@@ -22,17 +28,10 @@ public class ServerUDP : MonoBehaviour
     {
         serverText = "Starting UDP Server...";
 
-        //TO DO 1
-        //UDP doesn't keep track of our connections like TCP
-        //This means that we "can only" reply to other endpoints,
-        //since we don't know where or who they are
-        //We want any UDP connection that wants to communicate with 9050 port to send it to our socket.
-        //So as with TCP, we create a socket and bind it to the 9050 port. 
-
         socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
         int port = 9050;
-        IPEndPoint ipep = new IPEndPoint(IPAddress.Any, port);
+        ipep = new IPEndPoint(IPAddress.Any, port);
 
         try
         {
@@ -45,13 +44,8 @@ public class ServerUDP : MonoBehaviour
             return; // Exit if binding failed
         }
 
-        //socket.Listen(10);
-
-        //TO DO 3
-        //Our client is sending a handshake, the server has to be able to recieve it
-        //It's time to call the Receive thread
-        Thread newConnection = new Thread(Receive);
-        newConnection.Start();
+        mainThread = new Thread(Receive);
+        mainThread.Start();
     }
 
     void Update()
@@ -59,54 +53,60 @@ public class ServerUDP : MonoBehaviour
         UItext.text = serverText;
     }
 
-
     void Receive()
     {
-        int recv;
         byte[] data = new byte[1024];
-
-        serverText = serverText + "\n" + "Waiting for new Client...";
-
-        //TO DO 3
-        //We don't know who may be comunicating with this server, so we have to create an
-        //endpoint with any address and an IpEndpoint from it to reply to it later.
         IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
-        EndPoint Remote = (EndPoint)(sender);
+        EndPoint remoteEP = (EndPoint)(sender);
 
-        //Loop the whole process, and start receiveing messages directed to our socket
-        //(the one we binded to a port before)
-        //When using socket.ReceiveFrom, be sure send our remote as a reference so we can keep
-        //this adress (the client) and reply to it on TO DO 4
+        serverText += "\nWaiting for clients...";
 
         while (true)
         {
-            recv = socket.ReceiveFrom(data, ref Remote);
-            serverText += "\n" + "Message received from: " + Remote.ToString();
-            serverText += "\n" + Encoding.ASCII.GetString(data, 0, recv);
-            
-            //TO DO 4
-            //When our UDP server receives a message from a random remote, it has to send a ping,
-            //Call a send thread
-            Thread sendThread = new Thread(() => Send(Remote));
-            sendThread.Start();
+            try
+            {
+                int recv = socket.ReceiveFrom(data, ref remoteEP);
+                string message = Encoding.ASCII.GetString(data, 0, recv);
+
+                if (!userList.ContainsKey(remoteEP))
+                {
+                    // Store the player's name on the first message
+                    userList[remoteEP] = message;
+                    serverText += $"\nPlayer connected: " + message + " from " + remoteEP;
+                    SendToClient(remoteEP, "You have joined the lobby, " + message);
+                }
+                else
+                {
+                    string playerName = userList[remoteEP];
+                    serverText += "\nMessage received from " + userList[remoteEP] + ": " + message;
+                    SendToAllClients(playerName + ": " + message);
+                }
+            }
+            catch (SocketException ex)
+            {
+                serverText += "\nError receiving data: " + ex.Message;
+            }
         }
     }
 
-    void Send(EndPoint Remote)
+    void SendToClient(EndPoint Remote, string responseMessage)
     {
-        //TO DO 4
-        //Use socket.SendTo to send a ping using the remote we stored earlier.
-        byte[] data = Encoding.ASCII.GetBytes("Server has sent a mondongo message");
+        byte[] data = Encoding.ASCII.GetBytes(responseMessage);
         try
         {
             socket.SendTo(data, data.Length, SocketFlags.None, Remote);
         }
         catch (SocketException ex)
         {
-            serverText += "\nSocket send failed: " + ex.Message;
-            return;
+            serverText += "\nError sending data: " + ex.Message;
         }
     }
 
-
+    void SendToAllClients(string message)
+    {
+        foreach (var user in userList.Keys)
+        {
+            SendToClient(user, message);
+        }
+    }
 }
