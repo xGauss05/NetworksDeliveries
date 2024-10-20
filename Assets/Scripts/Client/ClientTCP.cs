@@ -59,6 +59,33 @@ public class ClientTCP : MonoBehaviour
         }
     }
 
+    public void Disconnect()
+    {
+        if (server != null && server.Connected)
+        {
+            try
+            {
+                server.Shutdown(SocketShutdown.Both);
+                server.Close();
+                clientText += "\nDisconnected from the server.";
+
+                toggleInputs = true;
+            }
+            catch (SocketException ex)
+            {
+                clientText += "\nError during disconnect: " + ex.Message;
+            }
+            finally
+            {
+                server = null;
+            }
+        }
+        else
+        {
+            clientText += "\nNo active connection to disconnect.";
+        }
+    }
+
     public void ChangeName()
     {
         playerName = usernameIF.text;

@@ -57,6 +57,32 @@ public class ClientUDP : MonoBehaviour
         }
     }
 
+    public void Disconnect()
+    {
+        if (socket != null)
+        {
+            try
+            {
+                socket.Close();
+                clientText += "\nDisconnected from the server.";
+
+                toggleInputs = true;
+            }
+            catch (SocketException ex)
+            {
+                clientText += "\nError during disconnect: " + ex.Message;
+            }
+            finally
+            {
+                socket = null;
+            }
+        }
+        else
+        {
+            clientText += "\nNo active connection to disconnect.";
+        }
+    }
+
     public void ChangeName()
     {
         playerName = usernameIF.text;

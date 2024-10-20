@@ -73,24 +73,18 @@ public class ServerTCP : MonoBehaviour
                 newUser.socket = socket.Accept(); // Accept the socket connection
                 serverText += "\nNew client connected from: " + newUser.socket.RemoteEndPoint.ToString();
 
-                // Add the new user to the list of connected users
                 userList.Add(newUser);
 
-                // Send a success message to the client
                 newUser.socket.Send(Encoding.ASCII.GetBytes("Successfully connected to server at " + ipep.ToString()));
 
-                // Start a thread to handle receiving messages from this client
                 Thread newConnection = new Thread(() => Receive(newUser));
                 newConnection.Start();
             }
             catch (SocketException ex)
             {
                 serverText += "\nSocket accept failed: " + ex.Message;
-                return; // Exit if binding failed
+                return;
             }
-
-            //IPEndPoint clientep = (IPEndPoint)socket.RemoteEndPoint;
-            //serverText = serverText + "\n" + "Connected with " + clientep.Address.ToString() + " at port " + clientep.Port.ToString();
         }
     }
 
