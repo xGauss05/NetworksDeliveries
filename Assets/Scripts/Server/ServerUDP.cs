@@ -6,7 +6,6 @@ using System.Threading;
 using TMPro;
 using System.Collections.Generic;
 
-
 public class ServerUDP : MonoBehaviour
 {
     Socket socket;
@@ -22,12 +21,13 @@ public class ServerUDP : MonoBehaviour
     void Start()
     {
         UItext = UItextObj.GetComponent<TextMeshProUGUI>();
+        startServer();
     }
 
     public void startServer()
     {
         serverText = "Starting UDP Server...";
-
+        Debug.Log("Starting UDP Server...");
         socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
         int port = 9050;
@@ -37,10 +37,12 @@ public class ServerUDP : MonoBehaviour
         {
             socket.Bind(ipep);
             serverText += "\nSocket successfully bound to port 9050.";
+            Debug.Log("Socket successfully bound to port 9050.");
         }
         catch (SocketException ex)
         {
             serverText += "\nSocket binding failed: " + ex.Message;
+            Debug.Log("Socket binding failed: " + ex.Message);
             return; // Exit if binding failed
         }
 
@@ -73,18 +75,21 @@ public class ServerUDP : MonoBehaviour
                     // Store the player's name on the first message
                     userList[remoteEP] = message;
                     serverText += $"\nPlayer connected: " + message + " from " + remoteEP;
+                    Debug.Log("Player connected: " + message + " from " + remoteEP);
                     SendToClient(remoteEP, "You have joined the lobby, " + message);
                 }
                 else
                 {
                     string playerName = userList[remoteEP];
                     serverText += "\nMessage received from " + userList[remoteEP] + ": " + message;
+                    Debug.Log("Message received from " + userList[remoteEP] + ": " + message);
                     SendToAllClients(playerName + ": " + message);
                 }
             }
             catch (SocketException ex)
             {
                 serverText += "\nError receiving data: " + ex.Message;
+                Debug.Log("Error receiving data: " + ex.Message);
             }
         }
     }
@@ -99,6 +104,7 @@ public class ServerUDP : MonoBehaviour
         catch (SocketException ex)
         {
             serverText += "\nError sending data: " + ex.Message;
+            Debug.Log("Error sending data: " + ex.Message);
         }
     }
 
